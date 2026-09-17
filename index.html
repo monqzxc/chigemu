@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Demonic Arcade Hub - Chibi Clash</title>
+    <style>
+        :root {
+            --bg: #07090e;
+            --panel: #0f172a;
+            --panel-sub: #1e293b;
+            --border: #334155;
+            --border-glow: #8b5cf6;
+            --text: #f8fafc;
+            --accent: #a855f7;
+            --cyan: #38bdf8;
+            --gold: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.15), transparent 70%);
+            color: var(--text);
+            margin: 0;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #c084fc;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 14px rgba(192, 132, 252, 0.5);
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 11px;
+            margin-top: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Screen View Manager */
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 1000px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Homescreen Styles */
+        #main-menu {
+            gap: 20px;
+            align-items: center;
+            padding: 20px 0;
+        }
+
+        .menu-banner {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(56, 189, 248, 0.1));
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 20px 30px;
+            text-align: center;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+
+        .menu-banner h2 {
+            margin: 0 0 8px 0;
+            color: #f8fafc;
+            font-size: 20px;
+        }
+
+        .menu-banner p {
+            margin: 0;
+            color: #94a3b8;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .game-card {
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+        }
+
+        .game-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(168, 85, 247, 0.3);
+        }
+
+        .game-card.locked {
+            opacity: 0.6;
+            border-style: dashed;
+        }
+
+        .game-card-img {
+            height: 140px;
+            background: radial-gradient(circle, #2e1065, #090d16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .game-card-body {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .game-card-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #f8fafc;
+            margin: 0;
+        }
+
+        .game-card-desc {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .btn-launch {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-launch:active {
+            opacity: 0.85;
+        }
+
+        .btn-launch.disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        /* Game Screen Layout */
+        #game-container {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            position: relative;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 35px rgba(147, 51, 234, 0.25), inset 0 0 1px 1px rgba(255,255,255,0.1);
+            border: 2px solid #3b0764;
+            background: #000;
+            max-width: 100%;
+        }
+
+        canvas {
+            display: block;
+            background-color: #060913;
+            width: 100%;
+            height: auto;
+            max-width: 640px;
+            max-height: 420px;
+        }
+
+        #game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(7, 9, 14, 0.88);
+            backdrop-filter: blur(6px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        #overlay-title {
+            font-size: 32px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .side-panel {
+            width: 320px;
+            max-width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        .hud-label {
+            color: #a855f7;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mode-switch-group {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            background: #090d16;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid #1e293b;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 5px 8px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+        }
+
+        .practice-settings {
+            display: none;
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .practice-settings.visible {
+            display: flex;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .toggle-switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #38bdf8;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+
+        .roster-btn {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 4px 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            outline: none;
+        }
+
+        .roster-btn:hover, .roster-btn:active {
+            border-color: #a855f7;
+            background: #1e1b4b;
+        }
+
+        .roster-btn.active {
+            border-color: #38bdf8;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+            background: #082f49;
+        }
+
+        .roster-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: radial-gradient(circle, #2e1065, #090d16);
+            border: 1.5px solid rgba(168, 85, 247, 0.4);
+        }
+
+        .roster-name {
+            font-size: 8px;
+            font-weight: bold;
+            color: #cbd5e1;
+            margin-top: 2px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .fighter-preview-card {
+            display: flex;
+            gap: 10px;
+            background: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 6px 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .fighter-preview-img {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid #a855f7;
+            object-fit: cover;
+            background: radial-gradient(circle, #3b0764, #020617);
+            flex-shrink: 0;
+        }
+
+        .fighter-preview-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            overflow: hidden;
+        }
+
+        .fighter-preview-name {
+            font-size: 11px;
+            font-weight: bold;
+            color: #f8fafc;
+        }
+
+        .fighter-preview-meta {
+            font-size: 9px;
+            color: #94a3b8;
+        }
+
+        .fighter-preview-quote {
+            font-size: 9px;
+            font-style: italic;
+            color: #c084fc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-bg {
+            background: #090d16;
+            height: 7px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 6px;
+            border: 1px solid #1e293b;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .hp-fill { background: linear-gradient(90deg, #10b981, #34d399); }
+        .enemy-hp-fill { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .mana-fill { background: linear-gradient(90deg, #38bdf8, #818cf8); }
+
+        .active-buff-box {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-left: 4px solid #64748b;
+            padding: 6px 8px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .buff-title {
+            font-weight: bold;
+            color: #94a3b8;
+            font-size: 11px;
+            margin-bottom: 2px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .buff-desc {
+            font-size: 10px;
+            color: #94a3b8;
+            line-height: 1.3;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 8px;
+            font-size: 10px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            background: #090d16;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #1e293b;
+        }
+
+        .key-badge {
+            background: #1e293b;
+            color: #f1f5f9;
+            font-weight: 600;
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid #475569;
+            font-size: 9px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 7px;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-action.btn-secondary {
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+        }
+
+        .btn-action.btn-danger {
+            background: linear-gradient(135deg, #475569, #64748b);
+        }
+
+        .btn-action:active {
+            opacity: 0.8;
+        }
+
+        #log {
+            height: 75px;
+            overflow-y: auto;
+            background: #080c15;
+            border: 1px solid #1e293b;
+            border-radius: 6px;
+            padding: 5px 6px;
+            font-size: 10px;
+            color: #94a3b8;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        #log div {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 2px;
+        }
+
+        /* On-Screen Mobile Touch Controls Overlay */
+        #mobile-controls {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 640px;
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        .touch-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .touch-btn {
+            background: rgba(30, 41, 59, 0.85);
+            border: 2px solid #475569;
+            color: #f8fafc;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 12px;
+            width: 56px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: background 0.1s, transform 0.1s;
+        }
+
+        .touch-btn:active, .touch-btn.pressed {
+            background: rgba(124, 58, 237, 0.8);
+            border-color: #a855f7;
+            transform: scale(0.95);
+        }
+
+        .touch-btn.action-primary {
+            background: rgba(124, 58, 237, 0.6);
+            border-color: #a855f7;
+            width: 64px;
+            font-size: 12px;
+        }
+
+        .touch-btn.action-special {
+            background: rgba(2, 132, 199, 0.6);
+            border-color: #38bdf8;
+            width: 64px;
+            font-size: 11px;
+        }
+
+        .modular-hint {
+            font-size: 9px;
+            color: #64748b;
+            text-align: center;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Demonic Arcade Hub</h1>
+    <div class="subtitle">Select a game to play • Mobile Touch & Keyboard Friendly</div>
+</div>
+
+<!-- MAIN HOMESCREEN MENU -->
+<div class="screen active" id="main-menu">
+    <div class="menu-banner">
+        <h2>Welcome to the Netherworld Game Center!</h2>
+        <p>Pick your favorite minigame below. More titles will be added to your library over time as your demonic collection grows!</p>
+    </div>
+
+    <div class="game-grid">
+        <!-- Game 1: Iruma Smash / Chibi Clash -->
+        <div class="game-card">
+            <div class="game-card-img">⚔️</div>
+            <div class="game-card-body">
+                <h3 class="game-card-title">Demon School Chibi Clash</h3>
+                <div class="game-card-desc">Pick your Misfit Class character, unleash special magical skills, and brawl against rival demons in the ultimate arena!</div>
+                <button class="btn-launch" onclick="switchScreen('game')">PLAY NOW</button>
+            </div>
+        </div>
+
+        <!-- Game 2: Coming Soon Placeholder -->
+        <div class="game-card locked">
+            <div class="game-card-img">🏃💨</div>
+            <div class="game-card-body">
+                <h3 class="game-card-title">Netherworld Dash</h3>
+                <div class="game-card-desc">Endless running through Royal One! Dodge obstacles, collect magical items, and test your endurance. (Coming Soon)</div>
+                <button class="btn-launch disabled">LOCKED</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="game-screen">
+    <div id="game-container">
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <div id="canvas-wrapper">
+                <canvas height="420" id="arena" width="640"></canvas>
+                <div id="game-over-overlay">
+                    <div id="overlay-title">VICTORY!</div>
+                    <button class="btn-action" onclick="resetGame()" style="width:150px; margin-bottom: 8px;">PLAY AGAIN</button>
+                    <button class="btn-action btn-danger" onclick="switchScreen('menu')" style="width:150px;">MAIN MENU</button>
+                </div>
+            </div>
+
+            <!-- On-Screen Virtual Gamepad for Mobile & Touchscreens -->
+            <div id="mobile-controls">
+                <div class="touch-group">
+                    <button class="touch-btn" id="t-left" ontouchstart="handleTouchStart('left')" ontouchend="handleTouchEnd('left')" onmousedown="handleTouchStart('left')" onmouseup="handleTouchEnd('left')">◀</button>
+                    <button class="touch-btn" id="t-right" ontouchstart="handleTouchStart('right')" ontouchend="handleTouchEnd('right')" onmousedown="handleTouchStart('right')" onmouseup="handleTouchEnd('right')">▶</button>
+                    <button class="touch-btn" id="t-jump" ontouchstart="handleTouchStart('jump')" ontouchend="handleTouchEnd('jump')" onmousedown="handleTouchStart('jump')" onmouseup="handleTouchEnd('jump')">▲</button>
+                </div>
+                <div class="touch-group">
+                    <button class="touch-btn action-primary" id="t-attack" ontouchstart="triggerMobileAttack()" onmousedown="triggerMobileAttack()">PUNCH</button>
+                    <button class="touch-btn action-special" id="t-skill" ontouchstart="triggerMobileSkill()" onmousedown="triggerMobileSkill()">SKILL</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="card">
+                <div class="hud-label">Game Options</div>
+                <div class="btn-group" style="margin-bottom: 8px;">
+                    <button class="btn-action btn-danger" onclick="switchScreen('menu')">🏠 Main Menu</button>
+                </div>
+
+                <div class="hud-label">Game Mode</div>
+                <div class="mode-switch-group">
+                    <button class="mode-btn active" id="btn-mode-vs" onclick="setGameMode(false)">⚔️ VS Rival</button>
+                    <button class="mode-btn" id="btn-mode-practice" onclick="setGameMode(true)">🎯 Practice</button>
+                </div>
+
+                <div class="practice-settings" id="practice-settings-box">
+                    <span>⚡ Unlimited Mana</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="toggle-unlimited-mana" onchange="toggleUnlimitedMana(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="hud-label">
+                    <span>Demon Roster</span>
+                    <span id="char-mbti-tag" style="color:#38bdf8;">[INFJ]</span>
+                </div>
+                <div class="roster-grid" id="roster-container"></div>
+                <div class="fighter-preview-card" id="fighter-preview">
+                    <img alt="Character Preview" class="fighter-preview-img" id="preview-img" src=""/>
+                    <div class="fighter-preview-info">
+                        <div class="fighter-preview-name" id="preview-name">Iruma Suzuki</div>
+                        <div class="fighter-preview-meta" id="preview-meta">Honor Student • Spd: 4.0</div>
+                        <div class="fighter-preview-quote" id="preview-quote">"Please do not eat me!"</div>
+                    </div>
+                </div>
+
+                <div class="hud-label">
+                    <span>Mana Gauge (0 / 100)</span>
+                    <span id="mana-num">0 / 100</span>
+                </div>
+                <div class="bar-bg"><div class="bar-fill mana-fill" id="p-mana-bar" style="width: 0%;"></div></div>
+
+                <div class="hud-label">Active Skill / Buff (6s)</div>
+                <div class="active-buff-box" id="buff-box">
+                    <div class="buff-title">
+                        <span id="buff-name">READY TO CAST</span>
+                        <span id="buff-timer-tag" style="font-size:9px; color:#94a3b8;">0.0s</span>
+                    </div>
+                    <div class="buff-desc" id="buff-text">
+                        Hit enemies (+6 Mana) or catch Orbs (Doubles gain to 12) to cast skills!
+                    </div>
+                </div>
+
+                <div class="controls-grid">
+                    <div><span class="key-badge">A</span><span class="key-badge">D</span> / <span class="key-badge">←</span><span class="key-badge">→</span> Walk</div>
+                    <div><span class="key-badge">W</span> / <span class="key-badge">Space</span> Jump</div>
+                    <div><span class="key-badge">J</span> / <span class="key-badge">Click</span> Punch</div>
+                    <div><span class="key-badge">E</span> / <span class="key-badge">K</span> Special</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-action" onclick="resetGame()">Restart</button>
+                    <button class="btn-action btn-secondary" id="btn-spawn-orb" onclick="spawnPowerUp()">Spawn Orb</button>
+                </div>
+            </div>
+            <div class="card" id="rival-hud-card">
+                <div class="hud-label">
+                    <span id="p-label-name">Player (Iruma)</span>
+                    <span id="p-hp-num">100 / 100</span>
+                </div>
+                <div class="bar-bg"><div class="bar-fill hp-fill" id="p-hp" style="width: 100%;"></div></div>
+                <div class="hud-label">
+                    <span id="e-label-name">Rival Demon (Asmodeus)</span>
+                    <span id="e-hp-num">100 / 100</span>
+                </div>
+                <div class="bar-bg"><div class="bar-fill enemy-hp-fill" id="e-hp" style="width: 100%;"></div></div>
+            </div>
+            <div class="card">
+                <div class="hud-label">Demonic Combat Log</div>
+                <div id="log"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modular-hint">
+    ⚡ Use the homescreen to pick your game, or play directly with full touch & keyboard controls!
+</div>
+
+<script>
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            if (screenId === 'menu') {
+                document.getElementById('main-menu').classList.add('active');
+                isGameRunning = false;
+            } else if (screenId === 'game') {
+                document.getElementById('game-screen').classList.add('active');
+                isGameRunning = true;
+                resetGame();
+            }
+        }
+
+        window.CHIBI_CHARACTERS = {
+            IRUMA: {
+                id: 'IRUMA', name: 'Iruma', title: 'Honor Demon Student', mbti: 'INFJ', quote: 'Please do not eat me!',
+                spriteUrl: 'https://lh3.googleusercontent.com/aida/AEtjO1Xc7hQp1VB_c9jZEm1TxW7WrBauwEm88r-PrS-_Ky_uPCrPskWtnqeW1Z8kV_he_rrALImRy13uXIIpDISjElXePFKh0xmXcZZwFTvDIve4sANkud2yTPgaQks6xSXGNjZ_YTK7ggdjFWFB6OApiTXOb3MXFeoQ0r4-jRCSIIGUXt9m0gxtO3-vRCNdN3e9cpnnw5KsUgjko-xp0oOtpgQf7ThPcY0n5HQlKbbxkO6I5enl9A5_wD9-iQU',
+                speed: 4.0,
+                palette: { hair: '#2563eb', hairHighlight: '#60a5fa', skin: '#fed7aa', outfit: '#1e3a8a', accent: '#38bdf8', horns: '#111827', wings: '#3b82f6', eyeColor: '#1d4ed8' },
+                specialSkill: { type: 'DODGE', name: 'Evasion Veil', color: '#38bdf8', desc: 'Dodges everything! Grants complete invincibility against attacks for 6 seconds.' }
+            },
+            CLARA: {
+                id: 'CLARA', name: 'Clara', title: 'Wild Toymaker', mbti: 'ENFP', quote: 'Let us play together forever!',
+                spriteUrl: 'https://lh3.googleusercontent.com/aida/AEtjO1XtcAhGspTiI-xAbFnlaVUCS2TJAUZx569yzJLYCY7jVRg20lxTOh7Uv2I6Z3zRLwzSWHWYAEM-A_v3YxdtnepsFSoBuOM-Pr8NamEV_YvUOW1SZFbXDZEDWNEjumiYEym0xBH6YRGlRSAqe26CHeCjFUVk7-KRAIfSSl8W_ZLIY6x3qmIWZQ1kaI0A6esa4RA882kKKtPNxk49ZW_Sb0nsVQh4Q39SSCUtR073l9IJwZFL8y__sZi_wZw',
+                speed: 4.5,
+                palette: { hair: '#22c55e', hairHighlight: '#4ade80', skin: '#fef08a', outfit: '#facc15', accent: '#10b981', horns: '#eab308', wings: '#10b981', eyeColor: '#15803d' },
+                specialSkill: { type: 'CANDY', name: 'Girly Toy Barrage', color: '#ec4899', desc: 'Throws candies, girly objects, hearts, and foods dealing chaotic multi-hits.' }
+            },
+            KALEGO: {
+                id: 'KALEGO', name: 'Kalego', title: 'Strict Homeroom Guardian', mbti: 'ISTJ', quote: 'Silence! Maintain order!',
+                spriteUrl: 'https://lh3.googleusercontent.com/aida/AEtjO1UkVpjW9IOqdEA_3rlQfsAun9D38TkKjfZrbY0MJ2hRJ4giDJRegwr6iABuJNwM-6-onRMdZZGqSMlymWxwGeaREY1Lj3_RdjUOYd9aFvyCj-VcYRB2aEF39bGqWRilrgRcv1QB_xNDpesOqD1q_5oUsHv79bjW-tAYEiGmesbkQeyzVihd70QXUzIslS22RSKU0uKaCu7Ek3FZ42PlKyA5Hcno4ioZAhYtjhHfFkBRakALeZOjhaGZpA',
+                speed: 3.9,
+                palette: { hair: '#475569', hairHighlight: '#64748b', skin: '#ffedd5', outfit: '#0f172a', accent: '#a855f7', horns: '#1e293b', wings: '#334155', eyeColor: '#7c3aed' },
+                specialSkill: { type: 'CERBERUS', name: 'Cerberus Summon', color: '#f59e0b', desc: 'Summons his 3-headed yellow thunder Cerberus to savage rivals with lightning.' }
+            },
+            ASMODEUS: {
+                id: 'ASMODEUS', name: 'Asmodeus', title: 'Flame Noble Prodigy', mbti: 'ISFP', quote: 'For the glory of Lord Iruma!',
+                spriteUrl: 'https://lh3.googleusercontent.com/aida/AEtjO1X5rC_bEfwTFXPAYiiz5S0S14MFEVZgOs9HQbeBbRYkhGyOJp_UHzkKawHOhSi7nNdXIHxPBDyElV9B-nST3GTFfhoaaQ7395vhzpApQ0xEK33KRnskESm_THPLHnoqEDCZ21lMWiVDVvlL29OILlrGxTl9hCc3Lhoh4aRFQmN8Ed0Xgljb0_OyFgb5K72R8NO31x5Lk0nb9Wqq5CA8vk6zAXTwxACe1NJ43DX-XqKHltY4wnczkO4E5Q',
+                speed: 4.4,
+                palette: { hair: '#f43f5e', hairHighlight: '#fb7185', skin: '#ffedd5', outfit: '#6b21a8', accent: '#f43f5e', horns: '#581c87', wings: '#f43f5e', eyeColor: '#e11d48' },
+                specialSkill: { type: 'FIRE', name: 'Hellfire Torrent', color: '#ef4444', desc: 'Throws continuous streams of explosive demonic fire.' }
+            },
+            AMERI: {
+                id: 'AMERI', name: 'Ameri', title: 'Student Council President', mbti: 'ENTJ', quote: 'A true leader never yields!',
+                spriteUrl: 'https://lh3.googleusercontent.com/aida/AEtjO1XD5b9KmQT17NEPYVtl8SFa3zry6S7axuVVfoexj4lNNvGA9gsWI-X1LH_ceNZR6Nkr3mOpozh4TO9tzXmitFUD3cwbr3L6zuBO1RtLwd2gN3LY3PLTcSMIrwxpH__HW_qpJ2lUR00R9_sX-mBDxfxWUt4gSekwox3I7VunhVAmCzOtD9GVY-bpUCO1UZSewLyWswf0lZJd9AHRF4viiwku5zT3ffpvB4pgkeLZFKJ2hH9RLUYhmeZp2H8',
+                speed: 4.3,
+                palette: { hair: '#b91c1c', hairHighlight: '#ef4444', skin: '#ffedd5', outfit: '#831843', accent: '#f43f5e', horns: '#4c0519', wings: '#9f1239', eyeColor: '#e11d48' },
+                specialSkill: { type: 'BUFF', name: 'Overclocked Aura', color: '#f43f5e', desc: 'Grants x2 damage with radiant glowing combat effects for 6 seconds.' }
+            }
+        };
+
+        window.getChibiCharacter = function(key) {
+            return window.CHIBI_CHARACTERS[key] || window.CHIBI_CHARACTERS.IRUMA;
+        };
+    </script>
+
+<script>
+        const canvas = document.getElementById('arena');
+        const ctx = canvas.getContext('2d');
+
+        const processedSprites = {};
+        Object.keys(window.CHIBI_CHARACTERS).forEach(key => {
+            const char = window.CHIBI_CHARACTERS[key];
+            if (char.spriteUrl) {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => processSpriteTransparency(key, img);
+                img.onerror = () => {
+                    const rawImg = new Image();
+                    rawImg.src = char.spriteUrl;
+                    processedSprites[key] = rawImg;
+                };
+                img.src = char.spriteUrl;
+            }
+        });
+
+        function processSpriteTransparency(key, img) {
+            try {
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = img.naturalWidth || img.width;
+                offCanvas.height = img.naturalHeight || img.height;
+                const oCtx = offCanvas.getContext('2d');
+                oCtx.drawImage(img, 0, 0);
+
+                const imgData = oCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+                const data = imgData.data;
+                const c1 = [data[0], data[1], data[2]];
+                const c2 = [data[(offCanvas.width - 1) * 4], data[(offCanvas.width - 1) * 4 + 1], data[(offCanvas.width - 1) * 4 + 2]];
+                const bgR = Math.round((c1[0] + c2[0]) / 2);
+                const bgG = Math.round((c1[1] + c2[1]) / 2);
+                const bgB = Math.round((c1[2] + c2[2]) / 2);
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i], g = data[i + 1], b = data[i + 2];
+                    const maxCh = Math.max(r, g, b);
+                    const colorDist = Math.hypot(r - bgR, g - bgG, b - bgB);
+
+                    if (maxCh < 40 || colorDist < 42) {
+                        data[i + 3] = 0;
+                    } else if (maxCh < 60 || colorDist < 58) {
+                        const factor = (maxCh - 40) / 20;
+                        data[i + 3] = Math.min(data[i + 3], Math.floor(factor * 255));
+                    }
+                }
+                oCtx.putImageData(imgData, 0, 0);
+                processedSprites[key] = offCanvas;
+            } catch (err) {
+                processedSprites[key] = img;
+            }
+        }
+
+        const bgImage = new Image();
+        bgImage.src = 'https://lh3.googleusercontent.com/aida/AEtjO1XEs7qSkoklEXN1WUyiRyADgl_6XjaYbLis-SUKO2fYaXRPs1Mr3Qk7pv9hYL0hIR-Iu9GdmplxiFEDN6xsd7XDy7BiswJ5cLygDkYCsdKCQV0hF0SEeB3veTum_Wd23GQIZGpm0jTRsgRALu5J7rHtRlePUD-bPQvUW3BjGAtAr9KWjPdLJCt3rasNIRhNDtCPK5y6sdV_owErDeSN0WnT7A_uxjzgP8mUOqtvom5uowqkmlVD0fhMo4Y';
+
+        const GRAVITY = 0.45;
+        const ATTACK_COOLDOWN_FRAMES = 26;
+        const SKILL_DURATION_FRAMES = 360;
+
+        const platforms = [
+            { x: 0, y: 375, w: 640, h: 45 },
+            { x: 50, y: 275, w: 140, h: 12 },
+            { x: 450, y: 275, w: 140, h: 12 },
+            { x: 230, y: 185, w: 180, h: 12 }
+        ];
+
+        let isGameRunning = false;
+        let isGameOver = false;
+        let isPracticeMode = false;
+        let unlimitedManaEnabled = false;
+        let keys = {};
+        let mobileStates = { left: false, right: false, jump: false };
+        let spawnTimer = 0;
+        let screenShake = 0;
+
+        let player = {
+            x: 80, y: 200, w: 34, h: 48, vx: 0, vy: 0, speed: 4.0, jumpPower: -10,
+            grounded: false, facing: 'right', hp: 100, maxHp: 100, mana: 0, maxMana: 100,
+            charKey: 'IRUMA', attackCooldown: 0, attackTimer: 0, activeSkill: null, skillTimer: 0,
+            powerUpActive: false, powerUpTimer: 0
+        };
+
+        let enemy = {
+            x: 510, y: 200, w: 34, h: 48, vx: 0, vy: 0, speed: 2.3, jumpPower: -9.5,
+            grounded: false, facing: 'left', hp: 100, maxHp: 100, mana: 0, maxMana: 100,
+            charKey: 'ASMODEUS', attackCooldown: 0, aiTimer: 0, activeSkill: null, skillTimer: 0,
+            powerUpActive: false, powerUpTimer: 0
+        };
+
+        let fallingOrbs = [], effects = [], projectiles = [], hitParticles = [], floatingTexts = [];
+
+        function handleTouchStart(action) {
+            mobileStates[action] = true;
+            const btn = document.getElementById(`t-${action}`);
+            if (btn) btn.classList.add('pressed');
+        }
+
+        function handleTouchEnd(action) {
+            mobileStates[action] = false;
+            const btn = document.getElementById(`t-${action}`);
+            if (btn) btn.classList.remove('pressed');
+        }
+
+        function triggerMobileAttack() {
+            if (!isGameOver && player.attackCooldown <= 0) basicAttack(player);
+        }
+
+        function triggerMobileSkill() {
+            if (!isGameOver) tryActivateSkill(player);
+        }
+
+        function setGameMode(practice) {
+            isPracticeMode = practice;
+            document.getElementById('btn-mode-vs').classList.toggle('active', !isPracticeMode);
+            document.getElementById('btn-mode-practice').classList.toggle('active', isPracticeMode);
+            document.getElementById('practice-settings-box').classList.toggle('visible', isPracticeMode);
+            
+            if (isPracticeMode) {
+                document.getElementById('e-label-name').innerText = 'Rival Demon (Practice Mode - Inactive)';
+                document.getElementById('e-hp-num').innerText = 'N/A';
+                document.getElementById('e-hp').style.width = '0%';
+            } else {
+                const rival = window.getChibiCharacter(enemy.charKey);
+                document.getElementById('e-label-name').innerText = `Rival Demon (${rival.name})`;
+                document.getElementById('e-hp-num').innerText = `${Math.ceil(enemy.hp)} / ${enemy.maxHp}`;
+                document.getElementById('e-hp').style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
+            }
+            resetGame();
+        }
+
+        function toggleUnlimitedMana(checkbox) {
+            unlimitedManaEnabled = checkbox.checked;
+            if (unlimitedManaEnabled) player.mana = player.maxMana;
+            updateManaUI();
+        }
+
+        function renderRosterUI() {
+            const container = document.getElementById('roster-container');
+            container.innerHTML = '';
+
+            Object.keys(window.CHIBI_CHARACTERS).forEach(key => {
+                const char = window.CHIBI_CHARACTERS[key];
+                const btn = document.createElement('button');
+                btn.className = `roster-btn ${player.charKey === key ? 'active' : ''}`;
+                btn.id = `btn-char-${key}`;
+                btn.title = `${char.name} [${char.mbti}]`;
+
+                btn.innerHTML = `
+                    <img class="roster-avatar" src="${char.spriteUrl || ''}" alt="${char.name}" onerror="this.style.display='none'">
+                    <div class="roster-name">${char.name}</div>
+                `;
+                btn.addEventListener('click', () => selectCharacter(key));
+                container.appendChild(btn);
+            });
+        }
+
+        function selectCharacter(key) {
+            player.charKey = key;
+            const char = window.getChibiCharacter(key);
+            player.speed = char.speed || 4.0;
+
+            const available = Object.keys(window.CHIBI_CHARACTERS).filter(k => k !== key);
+            enemy.charKey = available[Math.floor(Math.random() * available.length)];
+            const rival = window.getChibiCharacter(enemy.charKey);
+            enemy.speed = (rival.speed || 4.0) * 0.58;
+
+            document.querySelectorAll('.roster-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-char-${key}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            document.getElementById('char-mbti-tag').innerText = `[${char.mbti}]`;
+            document.getElementById('preview-img').src = char.spriteUrl;
+            document.getElementById('preview-name').innerText = char.name;
+            document.getElementById('preview-meta').innerText = `${char.title} • Spd: ${char.speed}`;
+            document.getElementById('preview-quote').innerText = `"${char.quote}"`;
+
+            document.getElementById('p-label-name').innerText = `Player (${char.name})`;
+            if (!isPracticeMode) document.getElementById('e-label-name').innerText = `Rival (${rival.name})`;
+
+            updateSkillBoxUI();
+        }
+
+        function log(msg) {
+            const l = document.getElementById('log');
+            l.innerHTML += `<div>${msg}</div>`;
+            l.scrollTop = l.scrollHeight;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (!isGameRunning || isGameOver) return;
+            if (e.code === 'KeyJ' && player.attackCooldown <= 0) basicAttack(player);
+            if ((e.code === 'KeyE' || e.code === 'KeyK')) tryActivateSkill(player);
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (!isGameRunning || isGameOver) return;
+            if (e.button === 0 && e.target === canvas && player.attackCooldown <= 0) basicAttack(player);
+        });
+
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        function createHitBurst(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2.5 + Math.random() * 4.5;
+                hitParticles.push({
+                    x: x, y: y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    color: color, size: 3 + Math.random() * 4, timer: 18, maxTimer: 18
+                });
+            }
+        }
+
+        function basicAttack(attacker) {
+            attacker.attackCooldown = ATTACK_COOLDOWN_FRAMES;
+            attacker.attackTimer = 10;
+
+            const attackType = Math.random() < 0.5 ? 'PUNCH' : 'KICK';
+            const hitBoxX = attacker.facing === 'right' ? attacker.x + attacker.w : attacker.x - 32;
+            const hitBox = { x: hitBoxX, y: attacker.y, w: 32, h: attacker.h };
+            const char = window.getChibiCharacter(attacker.charKey);
+            const pal = char.palette;
+
+            let damage = 10;
+            if (attacker.skillTimer > 0 && attacker.charKey === 'AMERI') damage *= 2;
+
+            effects.push({
+                ...hitBox, timer: 12, maxTimer: 12, type: attackType, color: pal.accent || '#38bdf8',
+                charKey: attacker.charKey, facing: attacker.facing, originX: attacker.x, originY: attacker.y,
+                w: attacker.w, h: attacker.h, skin: pal.skin, outfit: pal.outfit
+            });
+
+            if (!isPracticeMode || attacker !== player) {
+                const target = attacker === player ? enemy : player;
+                const targetChar = window.getChibiCharacter(target.charKey);
+                if (target.skillTimer > 0 && target.charKey === 'IRUMA') {
+                    floatingTexts.push({ x: target.x + target.w/2, y: target.y - 10, text: 'DODGED!', color: '#38bdf8', timer: 30, vy: -1 });
+                    return;
+                }
+
+                if (checkCollision(hitBox, target)) {
+                    target.hp = Math.max(0, target.hp - damage);
+                    target.vx += attacker.facing === 'right' ? 7 : -7;
+                    target.vy -= 2.5;
+                    screenShake = 6;
+                    createHitBurst(target.x + target.w / 2, target.y + target.h / 2, pal.accent || '#f59e0b', 12);
+
+                    floatingTexts.push({ x: target.x + target.w/2, y: target.y - 8, text: `-${damage}`, color: attacker === player ? '#38bdf8' : '#ef4444', timer: 32, vy: -1.2 });
+                    if (attacker === player && !unlimitedManaEnabled) {
+                        player.mana = Math.min(player.maxMana, player.mana + (player.powerUpActive ? 12 : 6));
+                        updateManaUI();
+                    }
+                }
+            } else {
+                if (!unlimitedManaEnabled) {
+                    player.mana = Math.min(player.maxMana, player.mana + (player.powerUpActive ? 12 : 6));
+                    updateManaUI();
+                }
+            }
+        }
+
+        function spawnPowerUp() {
+            fallingOrbs.push({ x: 50 + Math.random() * 540, y: -20, w: 26, h: 26, vy: 1.6, grounded: false });
+            log(`⚡ Demonic Power-Up Orb descended!`);
+        }
+
+        function tryActivateSkill(caster) {
+            const isPlayer = caster === player;
+            if (!isPlayer && isPracticeMode) return;
+            if (!unlimitedManaEnabled && caster.mana < caster.maxMana) return;
+            if (caster.skillTimer > 0) return;
+
+            const char = window.getChibiCharacter(caster.charKey);
+            const spec = char.specialSkill;
+
+            caster.skillTimer = SKILL_DURATION_FRAMES;
+            caster.powerUpActive = true;
+            if (!unlimitedManaEnabled && isPlayer) { caster.mana = 0; updateManaUI(); }
+
+            log(`🔥 ${char.name} activated [${spec.name}]!`);
+            if (isPlayer) updateSkillBoxUI();
+
+            executeCharacterSkill(caster, spec);
+        }
+
+        function executeCharacterSkill(caster, spec) {
+            const isPlayer = caster === player;
+            const target = isPlayer ? enemy : player;
+
+            if (spec.type === 'CANDY') {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        projectiles.push({
+                            x: caster.facing === 'right' ? caster.x + caster.w : caster.x - 16,
+                            y: caster.y + 10 + (Math.random() * 20 - 10),
+                            vx: (caster.facing === 'right' ? 7 : -7) + (Math.random() * 2 - 1),
+                            w: 16, h: 16, owner: isPlayer ? 'player' : 'enemy',
+                            color: '#ec4899', isCandy: true, symbol: ['🍬', '💖', '🧁', '⭐'][Math.floor(Math.random()*4)]
+                        });
+                    }, i * 180);
+                }
+            } else if (spec.type === 'CERBERUS') {
+                effects.push({ x: caster.facing === 'right' ? caster.x + 30 : caster.x - 90, y: caster.y - 10, w: 90, h: 50, timer: 60, color: '#f59e0b', type: 'CERBERUS' });
+                if (!isPracticeMode && Math.abs(caster.x - target.x) < 120) {
+                    target.hp = Math.max(0, target.hp - 35);
+                    target.vy = -6;
+                    screenShake = 10;
+                    createHitBurst(target.x + target.w/2, target.y + target.h/2, '#f59e0b', 20);
+                }
+            } else if (spec.type === 'FIRE') {
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        projectiles.push({
+                            x: caster.facing === 'right' ? caster.x + caster.w : caster.x - 16,
+                            y: caster.y + 14, vx: caster.facing === 'right' ? 9 : -9,
+                            w: 18, h: 18, owner: isPlayer ? 'player' : 'enemy', color: '#ef4444', isFire: true
+                        });
+                    }, i * 250);
+                }
+            }
+        }
+
+        function checkCollision(r1, r2) {
+            return !(r1.x > r2.x + r2.w || r1.x + r1.w < r2.x || r1.y > r2.y + r2.h || r1.y + r1.h < r2.y);
+        }
+
+        function updatePhysics(entity) {
+            entity.vy += GRAVITY;
+            entity.x += entity.vx;
+            entity.y += entity.vy;
+            entity.vx *= 0.85;
+            entity.grounded = false;
+
+            platforms.forEach(p => {
+                if (entity.x + entity.w > p.x && entity.x < p.x + p.w) {
+                    if (entity.y + entity.h >= p.y && entity.y + entity.h <= p.y + p.h + entity.vy) {
+                        if (entity.vy >= 0) { entity.y = p.y - entity.h; entity.vy = 0; entity.grounded = true; }
+                    }
+                }
+            });
+            if (entity.x < 0) entity.x = 0;
+            if (entity.x + entity.w > canvas.width) entity.x = canvas.width - entity.w;
+        }
+
+        function updateOrbsPhysics() {
+            fallingOrbs.forEach(p => {
+                if (!p.grounded) {
+                    p.y += p.vy;
+                    platforms.forEach(plat => {
+                        if (p.x + p.w > plat.x && p.x < plat.x + plat.w) {
+                            if (p.y + p.h >= plat.y && p.y + p.h <= plat.y + plat.h + p.vy) {
+                                p.y = plat.y - p.h; p.grounded = true;
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateManaUI() {
+            const pct = (player.mana / player.maxMana) * 100;
+            document.getElementById('p-mana-bar').style.width = `${pct}%`;
+            document.getElementById('mana-num').innerText = `${Math.floor(player.mana)} / ${player.maxMana}`;
+        }
+
+        function updateSkillBoxUI() {
+            const bBox = document.getElementById('buff-box');
+            const bName = document.getElementById('buff-name');
+            const bText = document.getElementById('buff-text');
+            const bTag = document.getElementById('buff-timer-tag');
+            const char = window.getChibiCharacter(player.charKey);
+            const spec = char.specialSkill;
+
+            if (player.skillTimer > 0) {
+                bName.innerText = `${spec.type} - ${spec.name} (ACTIVE)`;
+                bName.style.color = spec.color;
+                bBox.style.borderLeftColor = spec.color;
+                bText.innerText = spec.desc;
+                bTag.innerText = `${(player.skillTimer / 60).toFixed(1)}s`;
+            } else {
+                bName.innerText = `${spec.name} Ready`;
+                bName.style.color = spec.color;
+                bBox.style.borderLeftColor = spec.color;
+                bText.innerText = spec.desc;
+                bTag.innerText = player.mana >= player.maxMana ? 'READY!' : `${Math.floor(player.maxMana - player.mana)} Mana Needed`;
+            }
+        }
+
+        function updatePlayerControls() {
+            if (keys['KeyA'] || keys['ArrowLeft'] || mobileStates.left) { player.vx = -player.speed; player.facing = 'left'; }
+            if (keys['KeyD'] || keys['ArrowRight'] || mobileStates.right) { player.vx = player.speed; player.facing = 'right'; }
+            if ((keys['KeyW'] || keys['ArrowUp'] || keys['Space'] || mobileStates.jump) && player.grounded) {
+                player.vy = player.jumpPower; player.grounded = false; mobileStates.jump = false;
+            }
+
+            if (player.attackCooldown > 0) player.attackCooldown--;
+            if (player.skillTimer > 0) {
+                player.skillTimer--;
+                updateSkillBoxUI();
+                if (player.skillTimer === 0) { player.powerUpActive = false; updateSkillBoxUI(); }
+            }
+            if (unlimitedManaEnabled) { player.mana = player.maxMana; updateManaUI(); }
+        }
+
+        function updateAI() {
+            if (isPracticeMode) return;
+            enemy.aiTimer++;
+
+            let nearestOrb = fallingOrbs[0];
+            if (nearestOrb && Math.random() < 0.6) {
+                if (enemy.x < nearestOrb.x) { enemy.vx = enemy.speed; enemy.facing = 'right'; }
+                else { enemy.vx = -enemy.speed; enemy.facing = 'left'; }
+            } else {
+                if (enemy.x < player.x - 32) { enemy.vx = enemy.speed; enemy.facing = 'right'; }
+                else if (enemy.x > player.x + 32) { enemy.vx = -enemy.speed; enemy.facing = 'left'; }
+            }
+
+            if (enemy.mana >= enemy.maxMana && Math.abs(enemy.x - player.x) < 85) tryActivateSkill(enemy);
+            else if (Math.abs(enemy.x - player.x) < 38 && enemy.attackCooldown <= 0) basicAttack(enemy);
+
+            if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+            if (enemy.skillTimer > 0) {
+                enemy.skillTimer--;
+                if (enemy.skillTimer === 0) { enemy.powerUpActive = false; enemy.activeSkill = null; }
+            }
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            spawnTimer = 0;
+            screenShake = 0;
+            player.x = 80; player.y = 200; player.hp = player.maxHp; player.mana = unlimitedManaEnabled ? 100 : 0; player.vx = 0; player.vy = 0;
+            player.attackCooldown = 0; player.skillTimer = 0; player.powerUpActive = false;
+
+            enemy.x = 510; enemy.y = 200; enemy.hp = enemy.maxHp; enemy.mana = 0; enemy.vx = 0; enemy.vy = 0;
+            enemy.attackCooldown = 0; enemy.skillTimer = 0; enemy.powerUpActive = false;
+
+            fallingOrbs = []; effects = []; projectiles = []; hitParticles = []; floatingTexts = [];
+
+            document.getElementById('game-over-overlay').style.display = 'none';
+            document.getElementById('log').innerHTML = '';
+            updateManaUI();
+            updateSkillBoxUI();
+        }
+
+        function triggerGameOver(victory) {
+            isGameOver = true;
+            const overlay = document.getElementById('game-over-overlay');
+            const title = document.getElementById('overlay-title');
+            title.innerText = victory ? 'VICTORY!' : 'DEFEAT';
+            title.style.color = victory ? '#a855f7' : '#ef4444';
+            overlay.style.display = 'flex';
+        }
+
+        function update() {
+            if (!isGameRunning || isGameOver) return;
+
+            if (!isPracticeMode) {
+                if (player.hp <= 0) { triggerGameOver(false); return; }
+                if (enemy.hp <= 0) { triggerGameOver(true); return; }
+            }
+
+            if (screenShake > 0) screenShake--;
+            spawnTimer++;
+            if (spawnTimer % 360 === 0) spawnPowerUp();
+
+            updatePlayerControls();
+            if (!isPracticeMode) { updateAI(); updatePhysics(enemy); }
+            updatePhysics(player);
+            updateOrbsPhysics();
+
+            for (let i = fallingOrbs.length - 1; i >= 0; i--) {
+                let p = fallingOrbs[i];
+                if (checkCollision(player, p)) {
+                    player.powerUpActive = true; player.mana = player.maxMana; updateManaUI();
+                    fallingOrbs.splice(i, 1); continue;
+                }
+                if (!isPracticeMode && checkCollision(enemy, p)) {
+                    enemy.powerUpActive = true; enemy.mana = enemy.maxMana;
+                    fallingOrbs.splice(i, 1); continue;
+                }
+            }
+
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let pr = projectiles[i];
+                pr.x += pr.vx;
+                if (!isPracticeMode) {
+                    const target = pr.owner === 'player' ? enemy : player;
+                    if (checkCollision(pr, target)) {
+                        target.hp = Math.max(0, target.hp - 20);
+                        target.vy = -5; screenShake = 8;
+                        createHitBurst(target.x + target.w / 2, target.y + target.h / 2, pr.color, 14);
+                        projectiles.splice(i, 1); continue;
+                    }
+                }
+                if (pr.x < 0 || pr.x > canvas.width) projectiles.splice(i, 1);
+            }
+
+            effects.forEach(ef => ef.timer--);
+            effects = effects.filter(ef => ef.timer > 0);
+            hitParticles.forEach(p => { p.x += p.vx; p.y += p.vy; p.timer--; });
+            hitParticles = hitParticles.filter(p => p.timer > 0);
+            floatingTexts.forEach(ft => { ft.y += ft.vy; ft.timer--; });
+            floatingTexts = floatingTexts.filter(ft => ft.timer > 0);
+
+            document.getElementById('p-hp').style.width = `${(player.hp / player.maxHp) * 100}%`;
+            document.getElementById('p-hp-num').innerText = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+            if (!isPracticeMode) {
+                document.getElementById('e-hp').style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
+                document.getElementById('e-hp-num').innerText = `${Math.ceil(enemy.hp)} / ${enemy.maxHp}`;
+            }
+        }
+
+        function drawChibiCharacter(entity) {
+            const char = window.getChibiCharacter(entity.charKey);
+            const pal = char.palette;
+            const isRight = entity.facing === 'right';
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            ctx.ellipse(entity.x + entity.w / 2, entity.y + entity.h + 2, entity.w * 0.65, 5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(entity.x, entity.y);
+
+            if (entity.skillTimer > 0) {
+                const spec = char.specialSkill;
+                const auraPulse = Math.sin(Date.now() / 120) * 3 + 4;
+                ctx.save();
+                ctx.shadowColor = spec.color; ctx.shadowBlur = 18;
+                ctx.strokeStyle = spec.color; ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.ellipse(entity.w / 2, entity.h / 2, entity.w / 2 + auraPulse + 4, entity.h / 2 + auraPulse + 2, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            const spriteResource = processedSprites[entity.charKey];
+            if (spriteResource) {
+                ctx.save();
+                const breath = Math.sin(Date.now() / 300) * 1.5;
+                ctx.beginPath();
+                ctx.ellipse(entity.w / 2, entity.h / 2 + breath, entity.w / 2 + 10, entity.h / 2 + 10, 0, 0, Math.PI * 2);
+                ctx.clip();
+
+                if (!isRight) {
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(spriteResource, -entity.w - 8, -8 + breath, entity.w + 16, entity.h + 16);
+                } else {
+                    ctx.drawImage(spriteResource, -8, -8 + breath, entity.w + 16, entity.h + 16);
+                }
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        function drawAttackEffects() {
+            effects.forEach(ef => {
+                ctx.save();
+                const progress = (ef.maxTimer - ef.timer) / ef.maxTimer;
+                const isRight = ef.facing === 'right';
+                const fxColor = ef.color || '#38bdf8';
+
+                ctx.shadowColor = fxColor; ctx.shadowBlur = 12;
+
+                if (ef.type === 'PUNCH') {
+                    const reach = 28 * Math.sin(progress * Math.PI);
+                    const fistX = isRight ? ef.originX + ef.w + reach - 8 : ef.originX - reach - 6;
+                    const fistY = ef.originY + 22;
+
+                    ctx.strokeStyle = ef.outfit; ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(isRight ? ef.originX + ef.w - 6 : ef.originX + 6, fistY);
+                    ctx.lineTo(fistX + (isRight ? 2 : 10), fistY);
+                    ctx.stroke();
+
+                    ctx.fillStyle = ef.skin;
+                    ctx.beginPath(); ctx.arc(fistX + 6, fistY, 7, 0, Math.PI * 2); ctx.fill();
+                } else if (ef.type === 'KICK') {
+                    const reach = 32 * Math.sin(progress * Math.PI);
+                    const footX = isRight ? ef.originX + ef.w + reach - 10 : ef.originX - reach - 4;
+                    const footY = ef.originY + 28;
+
+                    ctx.strokeStyle = ef.outfit; ctx.lineWidth = 7;
+                    ctx.beginPath();
+                    ctx.moveTo(isRight ? ef.originX + ef.w - 8 : ef.originX + 8, ef.originY + 32);
+                    ctx.lineTo(footX + (isRight ? 2 : 10), footY + 2);
+                    ctx.stroke();
+                } else if (ef.type === 'CERBERUS') {
+                    ctx.fillStyle = '#f59e0b'; ctx.shadowColor = '#fde047'; ctx.shadowBlur = 15;
+                    ctx.beginPath(); ctx.roundRect(ef.x, ef.y, ef.w, ef.h, 12); ctx.fill();
+                    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px Segoe UI';
+                    ctx.fillText('🐶🐶🐶 CERBERUS!', ef.x + 8, ef.y + 28);
+                }
+                ctx.restore();
+            });
+        }
+
+        function drawHitParticles() {
+            hitParticles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.timer / p.maxTimer;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function drawFloatingTexts() {
+            floatingTexts.forEach(ft => {
+                ctx.save();
+                ctx.globalAlpha = ft.timer / 32;
+                ctx.font = '900 16px "Segoe UI", sans-serif';
+                ctx.fillStyle = ft.color; ctx.shadowColor = '#000000'; ctx.shadowBlur = 6;
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            });
+        }
+
+        function draw() {
+            if (!isGameRunning) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            if (screenShake > 0) {
+                ctx.translate((Math.random() - 0.5) * screenShake * 1.5, (Math.random() - 0.5) * screenShake * 1.5);
+            }
+
+            if (bgImage.complete && bgImage.naturalWidth !== 0) {
+                ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'rgba(7, 9, 14, 0.45)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#060913';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            platforms.forEach(p => {
+                ctx.fillStyle = '#1e1b4b';
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2;
+                ctx.strokeRect(p.x, p.y, p.w, p.h);
+            });
+
+            fallingOrbs.forEach(p => {
+                ctx.save();
+                const orbX = p.x + p.w / 2, orbY = p.y + p.h / 2;
+                ctx.fillStyle = '#38bdf8'; ctx.shadowColor = '#38bdf8'; ctx.shadowBlur = 14;
+                ctx.beginPath(); ctx.arc(orbX, orbY, 11, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#07090e'; ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+                ctx.fillText('MANA', orbX, orbY + 3);
+                ctx.restore();
+            });
+
+            drawAttackEffects();
+            drawHitParticles();
+
+            projectiles.forEach(pr => {
+                ctx.save();
+                ctx.shadowColor = pr.color; ctx.shadowBlur = 10;
+                if (pr.isCandy) {
+                    ctx.font = '16px Segoe UI'; ctx.textAlign = 'center';
+                    ctx.fillText(pr.symbol, pr.x, pr.y + 12);
+                } else {
+                    ctx.fillStyle = pr.color;
+                    ctx.beginPath(); ctx.arc(pr.x + pr.w/2, pr.y + pr.h/2, pr.w/2, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.restore();
+            });
+
+            drawChibiCharacter(player);
+            if (!isPracticeMode) drawChibiCharacter(enemy);
+            drawFloatingTexts();
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        renderRosterUI();
+        selectCharacter('IRUMA');
+        setGameMode(false);
+        gameLoop();
+    </script>
+</body>
+</html>
