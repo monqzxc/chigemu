@@ -4,6 +4,8 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
     <title>Demonic Arcade Hub - Chibi Clash</title>
+    <!-- PeerJS for Browser-to-Browser Online Multiplayer -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         :root {
             --bg: #07090e;
@@ -187,6 +189,56 @@
             background: #334155;
             color: #64748b;
             cursor: not-allowed;
+        }
+
+        /* Online Multiplayer Lobby Modal Overlay */
+        #multiplayer-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(7, 9, 14, 0.88);
+            backdrop-filter: blur(6px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-box {
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 0 35px rgba(139, 92, 246, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #c084fc;
+            text-align: center;
+            margin: 0;
+        }
+
+        .modal-input {
+            background: #090d16;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #fff;
+            font-size: 14px;
+            text-align: center;
+            width: 100%;
+            outline: none;
+        }
+
+        .modal-input:focus {
+            border-color: var(--accent);
         }
 
         /* Game Screen Layout */
@@ -636,11 +688,33 @@
     <div class="subtitle">Select a game to play • Mobile Touch & Keyboard Friendly</div>
 </div>
 
+<!-- ONLINE MULTIPLAYER LOBBY MODAL -->
+<div id="multiplayer-modal">
+    <div class="modal-box">
+        <h3 class="modal-title">🌐 Online 2-Player Versus</h3>
+        <div id="lobby-options-view">
+            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0 0 10px 0;">Host a private room and invite a friend, or enter their room code to join!</p>
+            <button class="btn-action" onclick="startHostingRoom()" style="margin-bottom: 10px; padding: 12px;">👑 Host New Room</button>
+            <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="room-code-input" class="modal-input" placeholder="Enter Room Code..." />
+                <button class="btn-action btn-secondary" onclick="joinExistingRoom()" style="padding: 10px;">🔗 Join Room</button>
+            </div>
+            <button class="btn-action btn-danger" onclick="closeMultiplayerModal()" style="margin-top: 6px;">Cancel</button>
+        </div>
+        <div id="lobby-waiting-view" style="display: none; text-align: center;">
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 6px;">Your Room Code:</p>
+            <div id="display-room-code" style="font-size: 26px; font-weight: bold; color: #38bdf8; letter-spacing: 3px; background: #090d16; padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 14px;">---</div>
+            <p style="font-size: 11px; color: #c084fc; animation: pulse 1.5s infinite;">Waiting for Player 2 to join...</p>
+            <button class="btn-action btn-danger" onclick="cancelHosting()" style="margin-top: 14px;">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- MAIN HOMESCREEN MENU -->
 <div class="screen active" id="main-menu">
     <div class="menu-banner">
         <h2>Welcome to the Netherworld Game Center!</h2>
-        <p>Pick your favorite minigame below. More titles will be added to your library over time as your demonic collection grows!</p>
+        <p>Pick your favorite minigame below. Play solo against the AI or invite a friend to a live 2-player showdown!</p>
     </div>
 
     <div class="game-grid">
@@ -649,8 +723,11 @@
             <div class="game-card-img">⚔️</div>
             <div class="game-card-body">
                 <h3 class="game-card-title">Demon School Chibi Clash</h3>
-                <div class="game-card-desc">Pick your Misfit Class character, unleash special magical skills, and brawl against rival demons in the ultimate arena!</div>
-                <button class="btn-launch" onclick="switchScreen('game')">PLAY NOW</button>
+                <div class="game-card-desc">Pick your Misfit Class character, unleash special magical skills, and brawl against rival demons in single or online 2-player mode!</div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-launch" onclick="switchScreen('game')">SOLO VS AI</button>
+                    <button class="btn-launch btn-secondary" onclick="openMultiplayerModal()" style="background: linear-gradient(135deg, #0284c7, #38bdf8);">2P ONLINE</button>
+                </div>
             </div>
         </div>
 
@@ -675,7 +752,7 @@
                 <div id="game-over-overlay">
                     <div id="overlay-title">VICTORY!</div>
                     <button class="btn-action" onclick="resetGame()" style="width:150px; margin-bottom: 8px;">PLAY AGAIN</button>
-                    <button class="btn-action btn-danger" onclick="switchScreen('menu')" style="width:150px;">MAIN MENU</button>
+                    <button class="btn-action btn-danger" onclick="quitToMenu()" style="width:150px;">MAIN MENU</button>
                 </div>
             </div>
 
@@ -697,11 +774,11 @@
             <div class="card">
                 <div class="hud-label">Game Options</div>
                 <div class="btn-group" style="margin-bottom: 8px;">
-                    <button class="btn-action btn-danger" onclick="switchScreen('menu')">🏠 Main Menu</button>
+                    <button class="btn-action btn-danger" onclick="quitToMenu()">🏠 Main Menu</button>
                 </div>
 
-                <div class="hud-label">Game Mode</div>
-                <div class="mode-switch-group">
+                <div class="hud-label" id="mode-label-title">Game Mode</div>
+                <div class="mode-switch-group" id="mode-switch-container">
                     <button class="mode-btn active" id="btn-mode-vs" onclick="setGameMode(false)">⚔️ VS Rival</button>
                     <button class="mode-btn" id="btn-mode-practice" onclick="setGameMode(true)">🎯 Practice</button>
                 </div>
@@ -786,11 +863,18 @@
             if (screenId === 'menu') {
                 document.getElementById('main-menu').classList.add('active');
                 isGameRunning = false;
+                disconnectPeer();
             } else if (screenId === 'game') {
                 document.getElementById('game-screen').classList.add('active');
                 isGameRunning = true;
                 resetGame();
             }
+        }
+
+        function quitToMenu() {
+            isOnlineMatch = false;
+            disconnectPeer();
+            switchScreen('menu');
         }
 
         window.CHIBI_CHARACTERS = {
@@ -839,6 +923,117 @@
 <script>
         const canvas = document.getElementById('arena');
         const ctx = canvas.getContext('2d');
+
+        // --- PEERJS MULTIPLAYER STATE ---
+        let peer = null;
+        let conn = null;
+        let isOnlineMatch = false;
+        let isHost = false;
+
+        function openMultiplayerModal() {
+            document.getElementById('multiplayer-modal').style.display = 'flex';
+            document.getElementById('lobby-options-view').style.display = 'flex';
+            document.getElementById('lobby-waiting-view').style.display = 'none';
+        }
+
+        function closeMultiplayerModal() {
+            document.getElementById('multiplayer-modal').style.display = 'none';
+        }
+
+        function startHostingRoom() {
+            isHost = true;
+            isOnlineMatch = true;
+            document.getElementById('lobby-options-view').style.display = 'none';
+            document.getElementById('lobby-waiting-view').style.display = 'block';
+
+            // Generate random 4-character uppercase room code
+            const customCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+            document.getElementById('display-room-code').innerText = customCode;
+
+            peer = new Peer(customCode);
+            peer.on('open', (id) => {
+                console.log('Room hosted with ID:', id);
+            });
+            peer.on('connection', (connection) => {
+                conn = connection;
+                setupPeerConnectionEvents();
+                log('🌐 Player 2 connected to your room!');
+                closeMultiplayerModal();
+                switchScreen('game');
+            });
+            peer.on('error', (err) => {
+                alert('Hosting error: ' + err.type);
+                cancelHosting();
+            });
+        }
+
+        function joinExistingRoom() {
+            const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+            if (!code) return alert('Please enter a valid room code!');
+
+            isHost = false;
+            isOnlineMatch = true;
+
+            peer = new Peer();
+            peer.on('open', () => {
+                conn = peer.connect(code);
+                setupPeerConnectionEvents();
+                log(`Connecting to room ${code}...`);
+            });
+            peer.on('error', (err) => {
+                alert('Connection error: Could not find room code ' + code);
+            });
+        }
+
+        function cancelHosting() {
+            disconnectPeer();
+            isOnlineMatch = false;
+            closeMultiplayerModal();
+        }
+
+        function disconnectPeer() {
+            if (conn) { conn.close(); conn = null; }
+            if (peer) { peer.destroy(); peer = null; }
+        }
+
+        function setupPeerConnectionEvents() {
+            conn.on('open', () => {
+                if (!isHost) {
+                    log('Connected successfully to host!');
+                    closeMultiplayerModal();
+                    switchScreen('game');
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleNetworkData(data);
+            });
+
+            conn.on('close', () => {
+                alert('Opponent disconnected from the match.');
+                quitToMenu();
+            });
+        }
+
+        function handleNetworkData(data) {
+            if (isHost) {
+                // Host receives Guest's inputs
+                if (data.type === 'INPUT') {
+                    if (data.action === 'left') { enemy.vx = -enemy.speed; enemy.facing = 'left'; }
+                    if (data.action === 'right') { enemy.vx = enemy.speed; enemy.facing = 'right'; }
+                    if (data.action === 'jump' && enemy.grounded) { enemy.vy = enemy.jumpPower; enemy.grounded = false; }
+                    if (data.action === 'attack' && enemy.attackCooldown <= 0) basicAttack(enemy);
+                    if (data.action === 'skill') tryActivateSkill(enemy);
+                }
+            } else {
+                // Guest receives Host's authoritative state sync
+                if (data.type === 'STATE_SYNC') {
+                    player.x = data.pX; player.y = data.pY; player.hp = data.pHp; player.mana = data.pMana; player.facing = data.pFacing;
+                    enemy.x = data.eX; enemy.y = data.eY; enemy.hp = data.eHp; enemy.mana = data.eMana; enemy.facing = data.eFacing;
+                    fallingOrbs = data.orbs;
+                }
+            }
+        }
 
         const processedSprites = {};
         Object.keys(window.CHIBI_CHARACTERS).forEach(key => {
@@ -922,7 +1117,7 @@
         };
 
         let enemy = {
-            x: 510, y: 200, w: 34, h: 48, vx: 0, vy: 0, speed: 2.3, jumpPower: -9.5,
+            x: 510, y: 200, w: 34, h: 48, vx: 0, vy: 0, speed: 4.0, jumpPower: -10,
             grounded: false, facing: 'left', hp: 100, maxHp: 100, mana: 0, maxMana: 100,
             charKey: 'ASMODEUS', attackCooldown: 0, aiTimer: 0, activeSkill: null, skillTimer: 0,
             powerUpActive: false, powerUpTimer: 0
@@ -934,6 +1129,7 @@
             mobileStates[action] = true;
             const btn = document.getElementById(`t-${action}`);
             if (btn) btn.classList.add('pressed');
+            if (isOnlineMatch && !isHost) sendInputToHost(action);
         }
 
         function handleTouchEnd(action) {
@@ -943,14 +1139,33 @@
         }
 
         function triggerMobileAttack() {
-            if (!isGameOver && player.attackCooldown <= 0) basicAttack(player);
+            if (!isGameOver && player.attackCooldown <= 0) {
+                if (isOnlineMatch && !isHost) {
+                    sendInputToHost('attack');
+                } else {
+                    basicAttack(isOnlineMatch && isHost ? enemy : player); // or local
+                }
+            }
         }
 
         function triggerMobileSkill() {
-            if (!isGameOver) tryActivateSkill(player);
+            if (!isGameOver) {
+                if (isOnlineMatch && !isHost) {
+                    sendInputToHost('skill');
+                } else {
+                    tryActivateSkill(isOnlineMatch && isHost ? enemy : player);
+                }
+            }
+        }
+
+        function sendInputToHost(action) {
+            if (conn && conn.open) {
+                conn.send({ type: 'INPUT', action: action });
+            }
         }
 
         function setGameMode(practice) {
+            if (isOnlineMatch) return; // locked during online play
             isPracticeMode = practice;
             document.getElementById('btn-mode-vs').classList.toggle('active', !isPracticeMode);
             document.getElementById('btn-mode-practice').classList.toggle('active', isPracticeMode);
@@ -1003,7 +1218,7 @@
             const available = Object.keys(window.CHIBI_CHARACTERS).filter(k => k !== key);
             enemy.charKey = available[Math.floor(Math.random() * available.length)];
             const rival = window.getChibiCharacter(enemy.charKey);
-            enemy.speed = (rival.speed || 4.0) * 0.58;
+            enemy.speed = rival.speed || 4.0;
 
             document.querySelectorAll('.roster-btn').forEach(b => b.classList.remove('active'));
             const activeBtn = document.getElementById(`btn-char-${key}`);
@@ -1030,13 +1245,29 @@
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             if (!isGameRunning || isGameOver) return;
+            
+            if (isOnlineMatch && !isHost) {
+                if (e.code === 'KeyA' || e.code === 'ArrowLeft') sendInputToHost('left');
+                if (e.code === 'KeyD' || e.code === 'ArrowRight') sendInputToHost('right');
+                if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') sendInputToHost('jump');
+                if (e.code === 'KeyJ') sendInputToHost('attack');
+                if (e.code === 'KeyE' || e.code === 'KeyK') sendInputToHost('skill');
+                return;
+            }
+
             if (e.code === 'KeyJ' && player.attackCooldown <= 0) basicAttack(player);
             if ((e.code === 'KeyE' || e.code === 'KeyK')) tryActivateSkill(player);
         });
 
         window.addEventListener('mousedown', (e) => {
             if (!isGameRunning || isGameOver) return;
-            if (e.button === 0 && e.target === canvas && player.attackCooldown <= 0) basicAttack(player);
+            if (e.button === 0 && e.target === canvas) {
+                if (isOnlineMatch && !isHost) {
+                    sendInputToHost('attack');
+                } else if (player.attackCooldown <= 0) {
+                    basicAttack(player);
+                }
+            }
         });
 
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -1073,7 +1304,6 @@
 
             if (!isPracticeMode || attacker !== player) {
                 const target = attacker === player ? enemy : player;
-                const targetChar = window.getChibiCharacter(target.charKey);
                 if (target.skillTimer > 0 && target.charKey === 'IRUMA') {
                     floatingTexts.push({ x: target.x + target.w/2, y: target.y - 10, text: 'DODGED!', color: '#38bdf8', timer: 30, vy: -1 });
                     return;
@@ -1244,7 +1474,7 @@
         }
 
         function updateAI() {
-            if (isPracticeMode) return;
+            if (isPracticeMode || isOnlineMatch) return;
             enemy.aiTimer++;
 
             let nearestOrb = fallingOrbs[0];
@@ -1296,19 +1526,53 @@
         function update() {
             if (!isGameRunning || isGameOver) return;
 
-            if (!isPracticeMode) {
-                if (player.hp <= 0) { triggerGameOver(false); return; }
-                if (enemy.hp <= 0) { triggerGameOver(true); return; }
+            if (isOnlineMatch) {
+                if (isHost) {
+                    // Host updates physics for both and broadcasts state
+                    updatePlayerControls();
+                    updatePhysics(player);
+                    updatePhysics(enemy);
+                    updateOrbsPhysics();
+
+                    if (player.attackCooldown > 0) player.attackCooldown--;
+                    if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+
+                    if (player.hp <= 0) { triggerGameOver(false); }
+                    if (enemy.hp <= 0) { triggerGameOver(true); }
+
+                    spawnTimer++;
+                    if (spawnTimer % 360 === 0) spawnPowerUp();
+
+                    // Send sync to Guest
+                    if (conn && conn.open) {
+                        conn.send({
+                            type: 'STATE_SYNC',
+                            pX: player.x, pY: player.y, pHp: player.hp, pMana: player.mana, pFacing: player.facing,
+                            eX: enemy.x, eY: enemy.y, eHp: enemy.hp, eMana: enemy.mana, eFacing: enemy.facing,
+                            orbs: fallingOrbs
+                        });
+                    }
+                } else {
+                    // Guest runs local player movement preview if desired or simply waits for state sync
+                    if (keys['KeyA'] || keys['ArrowLeft'] || mobileStates.left) sendInputToHost('left');
+                    if (keys['KeyD'] || keys['ArrowRight'] || mobileStates.right) sendInputToHost('right');
+                    if (keys['KeyW'] || keys['ArrowUp'] || keys['Space'] || mobileStates.jump) { sendInputToHost('jump'); mobileStates.jump = false; }
+                }
+            } else {
+                if (!isPracticeMode) {
+                    if (player.hp <= 0) { triggerGameOver(false); return; }
+                    if (enemy.hp <= 0) { triggerGameOver(true); return; }
+                }
+
+                if (screenShake > 0) screenShake--;
+                spawnTimer++;
+                if (spawnTimer % 360 === 0) spawnPowerUp();
+
+                updatePlayerControls();
+                if (!isPracticeMode) { updateAI(); updatePhysics(enemy); }
+                updatePhysics(player);
+                updateOrbsPhysics();
             }
-
-            if (screenShake > 0) screenShake--;
-            spawnTimer++;
-            if (spawnTimer % 360 === 0) spawnPowerUp();
-
-            updatePlayerControls();
-            if (!isPracticeMode) { updateAI(); updatePhysics(enemy); }
-            updatePhysics(player);
-            updateOrbsPhysics();
 
             for (let i = fallingOrbs.length - 1; i >= 0; i--) {
                 let p = fallingOrbs[i];
@@ -1352,8 +1616,9 @@
             }
         }
 
-        function drawChibiCharacter(entity) {
-            const char = window.getChibiCharacter(entity.charKey);
+        function drawChibiCharacter(entity, isPlayer1 = true) {
+            const charKey = isPlayer1 ? player.charKey : enemy.charKey;
+            const char = window.getChibiCharacter(charKey);
             const pal = char.palette;
             const isRight = entity.facing === 'right';
 
@@ -1379,7 +1644,7 @@
                 ctx.restore();
             }
 
-            const spriteResource = processedSprites[entity.charKey];
+            const spriteResource = processedSprites[charKey];
             if (spriteResource) {
                 ctx.save();
                 const breath = Math.sin(Date.now() / 300) * 1.5;
@@ -1513,8 +1778,8 @@
                 ctx.restore();
             });
 
-            drawChibiCharacter(player);
-            if (!isPracticeMode) drawChibiCharacter(enemy);
+            drawChibiCharacter(player, true);
+            if (!isPracticeMode) drawChibiCharacter(enemy, false);
             drawFloatingTexts();
             ctx.restore();
         }
