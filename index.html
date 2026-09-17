@@ -958,6 +958,8 @@
                 conn = connection;
                 setupPeerConnectionEvents();
                 log('🌐 Player 2 connected to your room!');
+                // Send host's initial character choice to guest
+                conn.send({ type: 'CHAR_SELECT', charKey: player.charKey, isHost: true });
                 closeMultiplayerModal();
                 switchScreen('game');
             });
@@ -1000,6 +1002,8 @@
             conn.on('open', () => {
                 if (!isHost) {
                     log('Connected successfully to host!');
+                    // Send guest's chosen character to host
+                    conn.send({ type: 'CHAR_SELECT', charKey: enemy.charKey, isHost: false });
                     closeMultiplayerModal();
                     switchScreen('game');
                 }
@@ -1016,6 +1020,22 @@
         }
 
         function handleNetworkData(data) {
+            if (data.type === 'CHAR_SELECT') {
+                if (data.isHost) {
+                    // Guest receives Host's character selection
+                    player.charKey = data.charKey;
+                    const char = window.getChibiCharacter(player.charKey);
+                    player.speed = char.speed || 4.0;
+                    document.getElementById('p-label-name').innerText = `Player (Host - ${char.name})`;
+                } else {
+                    // Host receives Guest's character selection
+                    enemy.charKey = data.charKey;
+                    const rival = window.getChibiCharacter(enemy.charKey);
+                    enemy.speed = rival.speed || 4.0;
+                    document.getElementById('e-label-name').innerText = `Rival Demon (${rival.name})`;
+                }
+            }
+
             if (isHost) {
                 // Host receives Guest's inputs
                 if (data.type === 'INPUT') {
@@ -1028,8 +1048,8 @@
             } else {
                 // Guest receives Host's authoritative state sync
                 if (data.type === 'STATE_SYNC') {
-                    player.x = data.pX; player.y = data.pY; player.hp = data.pHp; player.mana = data.pMana; player.facing = data.pFacing;
-                    enemy.x = data.eX; enemy.y = data.eY; enemy.hp = data.eHp; enemy.mana = data.eMana; enemy.facing = data.eFacing;
+                    player.x = data.pX; player.y = data.pY; player.hp = data.pHp; player.mana = data.pMana; player.facing = data.pFacing; player.charKey = data.pCharKey;
+                    enemy.x = data.eX; enemy.y = data.eY; enemy.hp = data.eHp; enemy.mana = data.eMana; enemy.facing = data.eFacing; enemy.charKey = data.eCharKey;
                     fallingOrbs = data.orbs;
                 }
             }
@@ -1139,11 +1159,11 @@
         }
 
         function triggerMobileAttack() {
-            if (!isGameOver && player.attackCooldown <= 0) {
+            if (!isGameOver && (isOnlineMatch ? !isHost : player.attackCooldown <= 0)) {
                 if (isOnlineMatch && !isHost) {
                     sendInputToHost('attack');
-                } else {
-                    basicAttack(isOnlineMatch && isHost ? enemy : player); // or local
+                } else if (player.attackCooldown <= 0) {
+                    basicAttack(isOnlineMatch && isHost ? enemy : player);
                 }
             }
         }
@@ -1197,7 +1217,7 @@
             Object.keys(window.CHIBI_CHARACTERS).forEach(key => {
                 const char = window.CHIBI_CHARACTERS[key];
                 const btn = document.createElement('button');
-                btn.className = `roster-btn ${player.charKey === key ? 'active' : ''}`;
+                btn.className = `roster-btn`;
                 btn.id = `btn-char-${key}`;
                 btn.title = `${char.name} [${char.mbti}]`;
 
@@ -1208,31 +1228,55 @@
                 btn.addEventListener('click', () => selectCharacter(key));
                 container.appendChild(btn);
             });
+            updateActiveRosterUI();
         }
 
-        function selectCharacter(key) {
-            player.charKey = key;
-            const char = window.getChibiCharacter(key);
-            player.speed = char.speed || 4.0;
-
-            const available = Object.keys(window.CHIBI_CHARACTERS).filter(k => k !== key);
-            enemy.charKey = available[Math.floor(Math.random() * available.length)];
-            const rival = window.getChibiCharacter(enemy.charKey);
-            enemy.speed = rival.speed || 4.0;
-
+        function updateActiveRosterUI() {
+            const localKey = (isOnlineMatch && !isHost) ? enemy.charKey : player.charKey;
             document.querySelectorAll('.roster-btn').forEach(b => b.classList.remove('active'));
-            const activeBtn = document.getElementById(`btn-char-${key}`);
+            const activeBtn = document.getElementById(`btn-char-${localKey}`);
             if (activeBtn) activeBtn.classList.add('active');
 
+            const char = window.getChibiCharacter(localKey);
             document.getElementById('char-mbti-tag').innerText = `[${char.mbti}]`;
             document.getElementById('preview-img').src = char.spriteUrl;
             document.getElementById('preview-name').innerText = char.name;
             document.getElementById('preview-meta').innerText = `${char.title} • Spd: ${char.speed}`;
             document.getElementById('preview-quote').innerText = `"${char.quote}"`;
+        }
 
-            document.getElementById('p-label-name').innerText = `Player (${char.name})`;
-            if (!isPracticeMode) document.getElementById('e-label-name').innerText = `Rival (${rival.name})`;
+        function selectCharacter(key) {
+            if (isOnlineMatch) {
+                if (isHost) {
+                    player.charKey = key;
+                    const char = window.getChibiCharacter(key);
+                    player.speed = char.speed || 4.0;
+                    if (conn && conn.open) {
+                        conn.send({ type: 'CHAR_SELECT', charKey: key, isHost: true });
+                    }
+                } else {
+                    enemy.charKey = key;
+                    const char = window.getChibiCharacter(key);
+                    enemy.speed = char.speed || 4.0;
+                    if (conn && conn.open) {
+                        conn.send({ type: 'CHAR_SELECT', charKey: key, isHost: false });
+                    }
+                }
+            } else {
+                player.charKey = key;
+                const char = window.getChibiCharacter(key);
+                player.speed = char.speed || 4.0;
 
+                const available = Object.keys(window.CHIBI_CHARACTERS).filter(k => k !== key);
+                enemy.charKey = available[Math.floor(Math.random() * available.length)];
+                const rival = window.getChibiCharacter(enemy.charKey);
+                enemy.speed = rival.speed || 4.0;
+                document.getElementById('e-label-name').innerText = `Rival (${rival.name})`;
+            }
+
+            updateActiveRosterUI();
+            const localChar = window.getChibiCharacter((isOnlineMatch && !isHost) ? enemy.charKey : player.charKey);
+            document.getElementById('p-label-name').innerText = `Player (${localChar.name})`;
             updateSkillBoxUI();
         }
 
@@ -1543,17 +1587,17 @@
                     spawnTimer++;
                     if (spawnTimer % 360 === 0) spawnPowerUp();
 
-                    // Send sync to Guest
+                    // Send sync to Guest including character keys
                     if (conn && conn.open) {
                         conn.send({
                             type: 'STATE_SYNC',
-                            pX: player.x, pY: player.y, pHp: player.hp, pMana: player.mana, pFacing: player.facing,
-                            eX: enemy.x, eY: enemy.y, eHp: enemy.hp, eMana: enemy.mana, eFacing: enemy.facing,
+                            pX: player.x, pY: player.y, pHp: player.hp, pMana: player.mana, pFacing: player.facing, pCharKey: player.charKey,
+                            eX: enemy.x, eY: enemy.y, eHp: enemy.hp, eMana: enemy.mana, eFacing: enemy.facing, eCharKey: enemy.charKey,
                             orbs: fallingOrbs
                         });
                     }
                 } else {
-                    // Guest runs local player movement preview if desired or simply waits for state sync
+                    // Guest runs local preview if desired or simply waits for state sync
                     if (keys['KeyA'] || keys['ArrowLeft'] || mobileStates.left) sendInputToHost('left');
                     if (keys['KeyD'] || keys['ArrowRight'] || mobileStates.right) sendInputToHost('right');
                     if (keys['KeyW'] || keys['ArrowUp'] || keys['Space'] || mobileStates.jump) { sendInputToHost('jump'); mobileStates.jump = false; }
@@ -1619,7 +1663,6 @@
         function drawChibiCharacter(entity, isPlayer1 = true) {
             const charKey = isPlayer1 ? player.charKey : enemy.charKey;
             const char = window.getChibiCharacter(charKey);
-            const pal = char.palette;
             const isRight = entity.facing === 'right';
 
             ctx.save();
