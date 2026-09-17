@@ -10,18 +10,18 @@ let currentChar = getChibiCharacter(selectedCharKey);
 
 // Fighter Objects
 let player = {
-    x: 100, y: 260, width: 64, height: 64,
+    x: 100, y: 240, width: 64, height: 80,
     vx: 0, vy: 0, speed: 4, hp: 100, maxHp: 100,
-    mana: 0, maxMana: 100, isAttacking: false, facing: 'right', color: '#38bdf8'
+    mana: 0, maxMana: 100, isAttacking: false, facing: 'right'
 };
 
 let enemy = {
-    x: 480, y: 260, width: 64, height: 64,
+    x: 480, y: 240, width: 64, height: 80,
     vx: 0, vy: 0, speed: 3.5, hp: 100, maxHp: 100,
-    mana: 0, maxMana: 100, isAttacking: false, facing: 'left', color: '#ef4444'
+    mana: 0, maxMana: 100, isAttacking: false, facing: 'left',
+    charKey: 'KALEGO'
 };
 
-// Input trackers
 const keys = {};
 
 // Initialize UI and Roster
@@ -33,13 +33,15 @@ function initRoster() {
         const char = CHIBI_CHARACTERS[key];
         const btn = document.createElement('button');
         btn.className = `roster-btn ${key === selectedCharKey ? 'active' : ''}`;
-        btn.innerHTML = `<img src="${char.spriteUrl}" alt="${char.name}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\'><rect width=\'100%\' height=\'100%\' fill=\'%231e293b\'/></svg>'">`;
+        
+        // Create a mini color swatch preview since images might not exist yet
+        btn.style.background = `linear-gradient(135deg, ${char.palette.primary}, ${char.palette.secondary})`;
+        btn.title = char.name;
         
         btn.addEventListener('click', () => {
             selectedCharKey = key;
             currentChar = getChibiCharacter(key);
             player.speed = currentChar.speed;
-            player.color = currentChar.palette.primary;
             
             document.querySelectorAll('.roster-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -52,13 +54,20 @@ function initRoster() {
 }
 
 function updatePreview() {
-    document.getElementById('preview-img').src = currentChar.spriteUrl;
+    // If you eventually add PNGs, this will load them. If not, it falls back cleanly.
+    const imgEl = document.getElementById('preview-img');
+    imgEl.src = currentChar.spriteUrl;
+    imgEl.onerror = () => {
+        // Fallback placeholder color block if image file is missing
+        imgEl.style.background = currentChar.palette.primary;
+    };
+
     document.getElementById('preview-name').textContent = currentChar.name;
     document.getElementById('preview-meta').textContent = currentChar.title;
     document.getElementById('preview-quote').textContent = currentChar.quote;
     document.getElementById('char-mbti-tag').textContent = `[${currentChar.mbti}]`;
     document.getElementById('p-label-name').textContent = currentChar.name;
-    document.getElementById('e-label-name').textContent = 'Rival AI';
+    document.getElementById('e-label-name').textContent = 'Rival AI (' + CHIBI_CHARACTERS[enemy.charKey].name + ')';
 }
 
 // Event Listeners for UI Navigation
@@ -86,11 +95,10 @@ document.getElementById('btn-restart').addEventListener('click', () => {
     startSoloGame();
 });
 
-// Keyboard Controls
+// Keyboard & Touch Controls
 window.addEventListener('keydown', (e) => { keys[e.code] = true; });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-// Touch Control Bindings
 function bindTouchButton(id, code) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -105,8 +113,48 @@ bindTouchButton('t-skill', 'KeyC');
 
 function startSoloGame() {
     gameState = 'PLAYING';
-    player.hp = 100; player.maxHp = 100; player.mana = 0; player.x = 100; player.y = 260;
-    enemy.hp = 100; enemy.maxHp = 100; enemy.mana = 0; enemy.x = 480; enemy.y = 260;
+    player.hp = 100; player.maxHp = 100; player.mana = 0; player.x = 100; player.y = 240;
+    enemy.hp = 100; enemy.maxHp = 100; enemy.mana = 0; enemy.x = 480; enemy.y = 240;
+}
+
+// Procedural Chibi Drawer (Renders stylized character using their palette)
+function drawChibiFighter(x, y, facing, charData, isAttacking) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    const primary = charData.palette.primary;
+    const secondary = charData.palette.secondary;
+
+    // Body / Outfit
+    ctx.fillStyle = primary;
+    ctx.fillRect(16, 40, 32, 28);
+
+    // Head (Chibi proportions: large head)
+    ctx.fillStyle = '#fde047'; // Skin tone
+    ctx.beginPath();
+    ctx.arc(32, 22, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hair (Colored using secondary palette)
+    ctx.fillStyle = secondary;
+    ctx.beginPath();
+    ctx.arc(32, 14, 18, Math.PI, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#0f172a';
+    const eyeOffset = facing === 'right' ? 4 : -4;
+    ctx.fillRect(24 + eyeOffset, 20, 4, 6);
+    ctx.fillRect(36 + eyeOffset, 20, 4, 6);
+
+    // Attack punch effect frame
+    if (isAttacking) {
+        ctx.fillStyle = '#f59e0b';
+        const fistX = facing === 'right' ? 52 : -12;
+        ctx.fillRect(fistX, 42, 20, 12);
+    }
+
+    ctx.restore();
 }
 
 // Core Physics & Game Loop
@@ -125,7 +173,7 @@ function update() {
     }
 
     // Jump
-    if ((keys['ArrowUp'] || keys['KeyW']) && player.y === 260) {
+    if ((keys['ArrowUp'] || keys['KeyW']) && player.y === 240) {
         player.vy = -12;
     }
 
@@ -134,12 +182,11 @@ function update() {
     player.x += player.vx;
     player.y += player.vy;
 
-    if (player.y > 260) {
-        player.y = 260;
+    if (player.y > 240) {
+        player.y = 240;
         player.vy = 0;
     }
 
-    // Boundaries
     player.x = Math.max(20, Math.min(canvas.width - player.width - 20, player.x));
 
     // Attack Action
@@ -148,7 +195,6 @@ function update() {
         player.mana = Math.min(100, player.mana + 15);
         setTimeout(() => { player.isAttacking = false; }, 250);
 
-        // Simple Hitbox Check
         const dist = Math.abs((player.x + player.width/2) - (enemy.x + enemy.width/2));
         if (dist < 70) {
             enemy.hp = Math.max(0, enemy.hp - 10);
@@ -156,6 +202,7 @@ function update() {
     }
 
     // AI Basic Behavior for Rival
+    const enemyChar = CHIBI_CHARACTERS[enemy.charKey];
     if (enemy.x > player.x + 40) {
         enemy.x -= 2;
         enemy.facing = 'left';
@@ -163,7 +210,6 @@ function update() {
         enemy.x += 2;
         enemy.facing = 'right';
     } else if (Math.random() < 0.03) {
-        // AI Attack
         const dist = Math.abs((enemy.x + enemy.width/2) - (player.x + player.width/2));
         if (dist < 70) {
             player.hp = Math.max(0, player.hp - 8);
@@ -189,21 +235,21 @@ function draw() {
 
     // Draw Arena Ground
     ctx.fillStyle = '#111827';
-    ctx.fillRect(0, 324, canvas.width, 96);
+    ctx.fillRect(0, 320, canvas.width, 100);
     ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(0, 324, canvas.width, 3);
+    ctx.fillRect(0, 320, canvas.width, 3);
 
-    // Draw Player Placeholder / Placeholder Box if image fails
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    // Draw Player & Enemy using Procedural Chibi Renderers
+    drawChibiFighter(player.x, player.y, player.facing, currentChar, player.isAttacking);
+    drawChibiFighter(enemy.x, enemy.y, enemy.facing, CHIBI_CHARACTERS[enemy.charKey], false);
+
+    // Name tags above heads
     ctx.fillStyle = '#ffffff';
     ctx.font = '11px sans-serif';
-    ctx.fillText(currentChar.name, player.x, player.y - 6);
-
-    // Draw Enemy
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-    ctx.fillText('Rival AI', enemy.x, enemy.y - 6);
+    ctx.textAlign = 'center';
+    ctx.fillText(currentChar.name, player.x + 32, player.y - 8);
+    ctx.fillText(CHIBI_CHARACTERS[enemy.charKey].name, enemy.x + 32, enemy.y - 8);
+    ctx.textAlign = 'left';
 }
 
 function gameLoop() {
