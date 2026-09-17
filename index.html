@@ -202,36 +202,37 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
+            padding: 16px;
         }
 
         .modal-box {
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(15, 23, 42, 0.98);
             border: 2px solid var(--border-glow);
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 420px;
-            box-shadow: 0 0 35px rgba(139, 92, 246, 0.3);
+            border-radius: 20px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 0 45px rgba(139, 92, 246, 0.35);
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 18px;
         }
 
         .modal-title {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: bold;
             color: #c084fc;
             text-align: center;
-            margin: 0;
+            margin: 0 0 4px 0;
         }
 
         .modal-input {
             background: #090d16;
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 12px;
+            border-radius: 10px;
+            padding: 12px 16px;
             color: #fff;
-            font-size: 14px;
+            font-size: 15px;
             text-align: center;
             width: 100%;
             outline: none;
@@ -580,14 +581,14 @@
 
         .btn-action {
             width: 100%;
-            padding: 7px;
+            padding: 9px 12px;
             background: linear-gradient(135deg, #7c3aed, #a855f7);
             color: #fff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 11px;
+            font-size: 12px;
             letter-spacing: 0.5px;
         }
 
@@ -692,20 +693,20 @@
 <div id="multiplayer-modal">
     <div class="modal-box">
         <h3 class="modal-title">🌐 Online 2-Player Versus</h3>
-        <div id="lobby-options-view">
-            <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0 0 10px 0;">Host a private room and invite a friend, or enter their room code to join!</p>
-            <button class="btn-action" onclick="startHostingRoom()" style="margin-bottom: 10px; padding: 12px;">👑 Host New Room</button>
-            <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div id="lobby-options-view" style="display: flex; flex-direction: column; gap: 14px;">
+            <p style="font-size: 13px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.4;">Host a private room and invite a friend, or enter their room code to join!</p>
+            <button class="btn-action" onclick="startHostingRoom()" style="padding: 14px; font-size: 13px;">👑 Host New Room</button>
+            <div style="border-top: 1px solid var(--border); padding-top: 14px; display: flex; flex-direction: column; gap: 10px;">
                 <input type="text" id="room-code-input" class="modal-input" placeholder="Enter Room Code..." />
-                <button class="btn-action btn-secondary" onclick="joinExistingRoom()" style="padding: 10px;">🔗 Join Room</button>
+                <button class="btn-action btn-secondary" onclick="joinExistingRoom()" style="padding: 12px; font-size: 13px;">🔗 Join Room</button>
             </div>
-            <button class="btn-action btn-danger" onclick="closeMultiplayerModal()" style="margin-top: 6px;">Cancel</button>
+            <button class="btn-action btn-danger" onclick="closeMultiplayerModal()" style="margin-top: 4px; padding: 10px;">Cancel</button>
         </div>
         <div id="lobby-waiting-view" style="display: none; text-align: center;">
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 6px;">Your Room Code:</p>
-            <div id="display-room-code" style="font-size: 26px; font-weight: bold; color: #38bdf8; letter-spacing: 3px; background: #090d16; padding: 10px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 14px;">---</div>
-            <p style="font-size: 11px; color: #c084fc; animation: pulse 1.5s infinite;">Waiting for Player 2 to join...</p>
-            <button class="btn-action btn-danger" onclick="cancelHosting()" style="margin-top: 14px;">Cancel</button>
+            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 8px;">Your Room Code:</p>
+            <div id="display-room-code" style="font-size: 28px; font-weight: bold; color: #38bdf8; letter-spacing: 4px; background: #090d16; padding: 12px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 16px;">---</div>
+            <p style="font-size: 12px; color: #c084fc;">Waiting for Player 2 to join...</p>
+            <button class="btn-action btn-danger" onclick="cancelHosting()" style="margin-top: 18px; padding: 10px;">Cancel</button>
         </div>
     </div>
 </div>
@@ -929,6 +930,7 @@
         let conn = null;
         let isOnlineMatch = false;
         let isHost = false;
+        let guestInputState = { left: false, right: false };
 
         function openMultiplayerModal() {
             document.getElementById('multiplayer-modal').style.display = 'flex';
@@ -958,7 +960,6 @@
                 conn = connection;
                 setupPeerConnectionEvents();
                 log('🌐 Player 2 connected to your room!');
-                // Send host's initial character choice to guest
                 conn.send({ type: 'CHAR_SELECT', charKey: player.charKey, isHost: true });
                 closeMultiplayerModal();
                 switchScreen('game');
@@ -1002,7 +1003,6 @@
             conn.on('open', () => {
                 if (!isHost) {
                     log('Connected successfully to host!');
-                    // Send guest's chosen character to host
                     conn.send({ type: 'CHAR_SELECT', charKey: enemy.charKey, isHost: false });
                     closeMultiplayerModal();
                     switchScreen('game');
@@ -1022,13 +1022,11 @@
         function handleNetworkData(data) {
             if (data.type === 'CHAR_SELECT') {
                 if (data.isHost) {
-                    // Guest receives Host's character selection
                     player.charKey = data.charKey;
                     const char = window.getChibiCharacter(player.charKey);
                     player.speed = char.speed || 4.0;
                     document.getElementById('p-label-name').innerText = `Player (Host - ${char.name})`;
                 } else {
-                    // Host receives Guest's character selection
                     enemy.charKey = data.charKey;
                     const rival = window.getChibiCharacter(enemy.charKey);
                     enemy.speed = rival.speed || 4.0;
@@ -1037,16 +1035,19 @@
             }
 
             if (isHost) {
-                // Host receives Guest's inputs
+                // Host receives continuous guest input state
                 if (data.type === 'INPUT') {
-                    if (data.action === 'left') { enemy.vx = -enemy.speed; enemy.facing = 'left'; }
-                    if (data.action === 'right') { enemy.vx = enemy.speed; enemy.facing = 'right'; }
-                    if (data.action === 'jump' && enemy.grounded) { enemy.vy = enemy.jumpPower; enemy.grounded = false; }
-                    if (data.action === 'attack' && enemy.attackCooldown <= 0) basicAttack(enemy);
-                    if (data.action === 'skill') tryActivateSkill(enemy);
+                    if (data.action === 'left') guestInputState.left = data.isDown;
+                    if (data.action === 'right') guestInputState.right = data.isDown;
+                    if (data.action === 'jump' && data.isDown && enemy.grounded) {
+                        enemy.vy = enemy.jumpPower; 
+                        enemy.grounded = false;
+                    }
+                    if (data.action === 'attack' && data.isDown && enemy.attackCooldown <= 0) basicAttack(enemy);
+                    if (data.action === 'skill' && data.isDown) tryActivateSkill(enemy);
                 }
             } else {
-                // Guest receives Host's authoritative state sync
+                // Guest receives Host authoritative state sync
                 if (data.type === 'STATE_SYNC') {
                     player.x = data.pX; player.y = data.pY; player.hp = data.pHp; player.mana = data.pMana; player.facing = data.pFacing; player.charKey = data.pCharKey;
                     enemy.x = data.eX; enemy.y = data.eY; enemy.hp = data.eHp; enemy.mana = data.eMana; enemy.facing = data.eFacing; enemy.charKey = data.eCharKey;
@@ -1149,19 +1150,21 @@
             mobileStates[action] = true;
             const btn = document.getElementById(`t-${action}`);
             if (btn) btn.classList.add('pressed');
-            if (isOnlineMatch && !isHost) sendInputToHost(action);
+            if (isOnlineMatch && !isHost) sendInputToHost(action, true);
         }
 
         function handleTouchEnd(action) {
             mobileStates[action] = false;
             const btn = document.getElementById(`t-${action}`);
             if (btn) btn.classList.remove('pressed');
+            if (isOnlineMatch && !isHost) sendInputToHost(action, false);
         }
 
         function triggerMobileAttack() {
-            if (!isGameOver && (isOnlineMatch ? !isHost : player.attackCooldown <= 0)) {
+            if (!isGameOver) {
                 if (isOnlineMatch && !isHost) {
-                    sendInputToHost('attack');
+                    sendInputToHost('attack', true);
+                    setTimeout(() => sendInputToHost('attack', false), 80);
                 } else if (player.attackCooldown <= 0) {
                     basicAttack(isOnlineMatch && isHost ? enemy : player);
                 }
@@ -1171,21 +1174,22 @@
         function triggerMobileSkill() {
             if (!isGameOver) {
                 if (isOnlineMatch && !isHost) {
-                    sendInputToHost('skill');
+                    sendInputToHost('skill', true);
+                    setTimeout(() => sendInputToHost('skill', false), 80);
                 } else {
                     tryActivateSkill(isOnlineMatch && isHost ? enemy : player);
                 }
             }
         }
 
-        function sendInputToHost(action) {
+        function sendInputToHost(action, isDown) {
             if (conn && conn.open) {
-                conn.send({ type: 'INPUT', action: action });
+                conn.send({ type: 'INPUT', action: action, isDown: isDown });
             }
         }
 
         function setGameMode(practice) {
-            if (isOnlineMatch) return; // locked during online play
+            if (isOnlineMatch) return;
             isPracticeMode = practice;
             document.getElementById('btn-mode-vs').classList.toggle('active', !isPracticeMode);
             document.getElementById('btn-mode-practice').classList.toggle('active', isPracticeMode);
@@ -1287,15 +1291,16 @@
         }
 
         window.addEventListener('keydown', (e) => {
+            if (keys[e.code]) return; // prevent key repeat spamming
             keys[e.code] = true;
             if (!isGameRunning || isGameOver) return;
             
             if (isOnlineMatch && !isHost) {
-                if (e.code === 'KeyA' || e.code === 'ArrowLeft') sendInputToHost('left');
-                if (e.code === 'KeyD' || e.code === 'ArrowRight') sendInputToHost('right');
-                if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') sendInputToHost('jump');
-                if (e.code === 'KeyJ') sendInputToHost('attack');
-                if (e.code === 'KeyE' || e.code === 'KeyK') sendInputToHost('skill');
+                if (e.code === 'KeyA' || e.code === 'ArrowLeft') sendInputToHost('left', true);
+                if (e.code === 'KeyD' || e.code === 'ArrowRight') sendInputToHost('right', true);
+                if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') sendInputToHost('jump', true);
+                if (e.code === 'KeyJ') { sendInputToHost('attack', true); setTimeout(() => sendInputToHost('attack', false), 80); }
+                if (e.code === 'KeyE' || e.code === 'KeyK') { sendInputToHost('skill', true); setTimeout(() => sendInputToHost('skill', false), 80); }
                 return;
             }
 
@@ -1303,18 +1308,28 @@
             if ((e.code === 'KeyE' || e.code === 'KeyK')) tryActivateSkill(player);
         });
 
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+            if (!isGameRunning || isGameOver) return;
+
+            if (isOnlineMatch && !isHost) {
+                if (e.code === 'KeyA' || e.code === 'ArrowLeft') sendInputToHost('left', false);
+                if (e.code === 'KeyD' || e.code === 'ArrowRight') sendInputToHost('right', false);
+                if (e.code === 'KeyW' || e.code === 'ArrowUp' || e.code === 'Space') sendInputToHost('jump', false);
+            }
+        });
+
         window.addEventListener('mousedown', (e) => {
             if (!isGameRunning || isGameOver) return;
             if (e.button === 0 && e.target === canvas) {
                 if (isOnlineMatch && !isHost) {
-                    sendInputToHost('attack');
+                    sendInputToHost('attack', true);
+                    setTimeout(() => sendInputToHost('attack', false), 80);
                 } else if (player.attackCooldown <= 0) {
                     basicAttack(player);
                 }
             }
         });
-
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
         function createHitBurst(x, y, color, count = 10) {
             for (let i = 0; i < count; i++) {
@@ -1572,14 +1587,21 @@
 
             if (isOnlineMatch) {
                 if (isHost) {
-                    // Host updates physics for both and broadcasts state
+                    // Host processes local player controls
                     updatePlayerControls();
                     updatePhysics(player);
+
+                    // Host processes guest (enemy) movement based on continuous input state
+                    if (guestInputState.left) { enemy.vx = -enemy.speed; enemy.facing = 'left'; }
+                    else if (guestInputState.right) { enemy.vx = enemy.speed; enemy.facing = 'right'; }
                     updatePhysics(enemy);
+
                     updateOrbsPhysics();
 
                     if (player.attackCooldown > 0) player.attackCooldown--;
                     if (enemy.attackCooldown > 0) enemy.attackCooldown--;
+                    if (player.skillTimer > 0) player.skillTimer--;
+                    if (enemy.skillTimer > 0) enemy.skillTimer--;
 
                     if (player.hp <= 0) { triggerGameOver(false); }
                     if (enemy.hp <= 0) { triggerGameOver(true); }
@@ -1587,7 +1609,7 @@
                     spawnTimer++;
                     if (spawnTimer % 360 === 0) spawnPowerUp();
 
-                    // Send sync to Guest including character keys
+                    // Host broadcasts state to Guest
                     if (conn && conn.open) {
                         conn.send({
                             type: 'STATE_SYNC',
@@ -1596,11 +1618,6 @@
                             orbs: fallingOrbs
                         });
                     }
-                } else {
-                    // Guest runs local preview if desired or simply waits for state sync
-                    if (keys['KeyA'] || keys['ArrowLeft'] || mobileStates.left) sendInputToHost('left');
-                    if (keys['KeyD'] || keys['ArrowRight'] || mobileStates.right) sendInputToHost('right');
-                    if (keys['KeyW'] || keys['ArrowUp'] || keys['Space'] || mobileStates.jump) { sendInputToHost('jump'); mobileStates.jump = false; }
                 }
             } else {
                 if (!isPracticeMode) {
